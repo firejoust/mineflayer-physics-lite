@@ -102,3 +102,9 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Rescript compiled output
+**/*.js
+
+# Rescript builder components
+lib/

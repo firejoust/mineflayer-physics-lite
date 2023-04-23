@@ -1,0 +1,16 @@
+{
+  "name": "mineflayer-physics-lite",
+  "version": "0.0.1",
+  "main": "./src/index.js",
+  "scripts": {
+    "res:build": "rescript",
+    "res:clean": "rescript clean",
+    "res:dev": "rescript build -w"
+  },
+  "keywords": [],
+  "author": "firejoust",
+  "license": "MIT",
+  "dependencies": {
+    "rescript": "^10.1.4"
+  }
+}
