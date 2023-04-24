@@ -9,20 +9,7 @@ type column = {
     minY: int
 }
 
-module World = {
-    type world = {
-        getColumn: (int, int) => column
-    }
-}
-
-type registry = {
-
-}
-
-type client = {
-    world: World.world,
-    registry: registry
-}
+type client = {}
 
 type vec3 = {
     x: float,

@@ -1,3 +1,3 @@
 let plugin = async (bot: Types.client) => {
-    Storage.inject(bot)
+    let chunk = Chunk.inject(bot)
 }
