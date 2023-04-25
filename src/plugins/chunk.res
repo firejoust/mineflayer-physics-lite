@@ -16,39 +16,38 @@ let inject = (bot: Types.client) => {
     `)
 
     let getColumnJs = %raw(`
-        async (x, z) => {
-            return bot.world.async.getColumn(x, z)
+        (x, z) => {
+            return bot.world.async.getLoadedColumn(x, z)
         }
     `)
 
     let getBlockJs = %raw(`
         (column, x, y, z) => {
-            if (
-                Math.sqrt((x - bot.entity.position.x) ** 2 + (y - bot.entity.position.y) ** 2 + (z - bot.entity.position.z) ** 2) <= 1.5
-            ) {
-                console.log("at "+x+","+y+","+z+": "+column.getBlockStateId({x, y, z}))
-            }
-            
+            /*
+                IMPORTANT!!!
+
+                We cannot use the raw x,y,z for this function!
+                We need to convert it to the chunk pos first:
+
+                function posInChunk (pos) {
+                    return new Vec3(Math.floor(pos.x) & 15, Math.floor(pos.y), Math.floor(pos.z) & 15)
+                }
+            */
             return column.getBlockStateId({x, y, z})
         }
     `)
 
-    let loadColumn = async (x, z) => {
-        let x0 = x * 0x10
-        let z0 = z * 0x10
-
-        let column: Types.column = await getColumnJs(x, z)
+    let loadColumn = (x, z) => {
+        let column: Types.column = getColumnJs(x, z)
         let size = Array.length(column.sections)
-
         let sections = Array.init(size, _ => Array.make(4096, 0))
-        let y0 = column.minY
 
         for i in 0 to size - 1 {
             let j = ref(0)
-            let y1 = i * 0x10
+            let y0 = i * 0x10
 
             Utils.xyzIterator(0xf, (x, y, z) => {
-                let stateId = getBlockJs(column, x0 + x, y0 + y1 + y, z0 + z)
+                let stateId = getBlockJs(column, x, y + y0 + column.minY, z) // pos in chunk
                 Array.set(sections[i], j.contents, stateId)
                 j := j.contents + 1
             })
@@ -56,7 +55,7 @@ let inject = (bot: Types.client) => {
 
         let key = Belt.Int.toString(x) ++ "," ++ Belt.Int.toString(z)
         Belt.HashMap.String.set(chunkMap, key, sections)
-        Belt.HashMap.String.set(chunkMapHeight, key, y0)
+        Belt.HashMap.String.set(chunkMapHeight, key, column.minY)
     }
 
     let unloadColumn = (x: int, z: int) => {
@@ -79,21 +78,21 @@ let inject = (bot: Types.client) => {
             | (Some(sections), Some(minY)) => {
                 let index = (y - minY) / 0x10
                 if index > -1 && index < Array.length(sections) {
-                    let x0 = x - ((x / 0x10) * 0x10)
-                    let y0 = (y - minY) - (index * 0x10)
-                    let z0 = z - ((z / 0x10) * 0x10)
+                    let chunkX = x < 0
+                    ? (x / 0x10) * 0x10 - 0xf
+                    : (x / 0x10) * 0x10
 
-                    let x0 = x0 < 0
-                    ? 0x10 + x0
-                    : x0
+                    let chunkY = y < 0
+                    ? (y / 0x10) * 0x10 - 0xf
+                    : (y / 0x10) * 0x10
 
-                    let y0 = y0 < 0
-                    ? 0x10 + y0
-                    : y0
+                    let chunkZ = z < 0
+                    ? (z / 0x10) * 0x10 - 0xf
+                    : (z / 0x10) * 0x10
 
-                    let z0 = z0 < 0
-                    ? 0x10 + z0
-                    : z0
+                    let x0 = x - chunkX
+                    let y0 = y - chunkY
+                    let z0 = z - chunkZ
 
                     sections[index][
                         z0
@@ -130,24 +129,26 @@ let inject = (bot: Types.client) => {
                 if index <= -1 || index >= Array.length(sections) {
                     None
                 } else {
-                    let x0 = x - ((x / 0x10) * 0x10)
-                    let y0 = (y - minY) - (index * 0x10)
-                    let z0 = z - ((z / 0x10) * 0x10)
+                    let chunkX = x < 0
+                    ? (x / 0x10) * 0x10 - 0xf
+                    : (x / 0x10) * 0x10
 
-                    let x0 = x0 < 0
-                    ? 0x10 + x0
-                    : x0
+                    let chunkY = y < 0
+                    ? (y / 0x10) * 0x10 - 0xf
+                    : (y / 0x10) * 0x10
 
-                    let y0 = y0 < 0
-                    ? 0x10 + y0
-                    : y0
+                    let chunkZ = z < 0
+                    ? (z / 0x10) * 0x10 - 0xf
+                    : (z / 0x10) * 0x10
 
-                    let z0 = z0 < 0
-                    ? 0x10 + z0
-                    : z0
-                    
-                    Js.log(`x0 to x:`)
-                    Js.log((z / 0x10) * 0x10)
+                    Js.log(`chunkX: ${Belt.Int.toString(chunkX)}`)
+                    Js.log(`chunkY: ${Belt.Int.toString(chunkY)}`)
+                    Js.log(`chunkZ: ${Belt.Int.toString(chunkZ)}`)
+
+                    let x0 = x - chunkX
+                    let y0 = y - chunkY
+                    let z0 = z - chunkZ
+
                     Js.log3(x0, y0, z0)
 
                     // get block in same order that it was placed into array
