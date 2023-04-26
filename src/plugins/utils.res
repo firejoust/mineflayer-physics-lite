@@ -8,4 +8,12 @@ let xyzIterator = (radius, callback) => {
     }
 }
 
+let floorDiv = (a: float, b: float) => {
+    Js.Math.floor_int(a /. b)
+}
+
+let floorDivInt: (int, int) => int = %raw(`
+    (a, b) => Math.floor(a / b) | 0
+`)
+
 let compareInt = (a: int, b: int) => Pervasives.compare(a, b)
