@@ -1,10 +1,12 @@
+type vec3 = Types.vec3
+
 type plugin = {
-    getBlock: (float, float, float) => option<int>
+    getBlock: vec3 => option<int>
 }
 
 @warning("-21")
 @warning("-27")
-let inject = (bot: Types.client): plugin => {
+let inject = (bot: Types.client) => {
     // todo: set to chunk render distance
     let chunkMap = Belt.HashMap.String.make(~hintSize=0xff)
     let chunkMapHeight = Belt.HashMap.String.make(~hintSize=0xff)
@@ -89,11 +91,15 @@ let inject = (bot: Types.client): plugin => {
         updateBlock(a, b)
     })
 
-    let getBlock = (x: float, y: float, z: float) => {
-        let key = Belt.Int.toString(Utils.floorDiv(x, 16.0)) ++ "," ++ Belt.Int.toString(Utils.floorDiv(z, 16.0))
-        let x = Js.Math.floor_int(x)
-        let y = Js.Math.floor_int(y)
-        let z = Js.Math.floor_int(z)
+    let getBlock = (position: vec3) => {
+        let key = Utils.floorDiv(position.x, 16.0) -> Belt.Int.toString
+            ++ ","
+            ++ Utils.floorDiv(position.z, 16.0) -> Belt.Int.toString
+        
+        // floor position
+        let x = Js.Math.floor_int(position.x)
+        let y = Js.Math.floor_int(position.y)
+        let z = Js.Math.floor_int(position.z)
 
         let sections = Belt.HashMap.String.get(chunkMap, key)
         let minY = Belt.HashMap.String.get(chunkMapHeight, key)
