@@ -27,3 +27,12 @@ let unwrapStr = (value: option<string>) => switch(value) {
 }
 
 let compareInt = (a: int, b: int) => Pervasives.compare(a, b)
+
+let offsetVec = (position: Types.vec3, x: float, y: float, z: float) => {
+    position.x = position.x +. x
+    position.y = position.y +. y
+    position.z = position.z +. z
+    position
+}
+
+let xor: (bool, bool) => bool = %raw(`(a, b) => a ^ b`)

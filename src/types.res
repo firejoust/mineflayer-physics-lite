@@ -1,9 +1,9 @@
 type client = {}
 
 type vec3 = {
-    x: float,
-    y: float,
-    z: float
+    mutable x: float,
+    mutable y: float,
+    mutable z: float
 }
 
 type block = {

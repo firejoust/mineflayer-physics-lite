@@ -12,38 +12,44 @@ type entityState = {
     isCollidedVertically: bool,
 }
 
-type modifier = {
-    operation: int,
-    amount: float
-}
-
-type attribute = {
-    value: float,
-    modifiers: array<modifier>
-}
-
-type attributes = {
-    "minecraft:generic.movement_speed": option<attribute>
-}
-
-type effect = {
+type entityEffect = {
     amplifier: int,
     duration: int
 }
 
-type effects = {
-    "8": option<effect>
+type entityEffects = {
+    "1": option<entityEffect>, // speed
+    "2": option<entityEffect>, // slowness
+    "8": option<entityEffect>  // jump
 }
 
 type entity = {
-    attributes: option<attributes>,
-    effects: effects
+    effects: entityEffects
 }
 
-type modifiers = {
-    movement: float,
-    jump: float
+type controls = {
+    forward: bool,
+    back: bool,
+    left: bool,
+    right: bool,
+    jump: bool,
+    sneak: bool,
+    sprint: bool,
 }
+
+type effects = {
+    speed: int,
+    slowness: int,
+    jump_boost: int
+}
+
+type plugin = {
+    getSlip: vec3 => float,
+    getEffects: entity => effects,
+    getMovement: controls => float,
+    getNextState: (entityState, controls, effects) => unit
+}
+
 
 let inject = (bot: Types.client) => {
     let chunk = Chunk.inject(bot)
@@ -61,33 +67,64 @@ let inject = (bot: Types.client) => {
         }
     }
 
-    let getModifiers = (entity: entity) => {
-        movement: switch (entity.attributes) {
-            | Some(attributes) => switch (attributes["minecraft:generic.movement_speed"]) {
-                | Some(attribute) => {
-                    let weight = ref(attribute.value)
-                    // append speed attribute modifiers to final weight
-                    for i in 0 to Array.length(attribute.modifiers) - 1 {
-                        let modifier = attribute.modifiers[i]
-                        weight := switch (modifier.operation) {
-                            | 0 => weight.contents +. modifier.amount
-                            | 1 => weight.contents +. attribute.value *. (1.0 +. modifier.amount)
-                            | 2 => weight.contents +. attribute.value *. modifier.amount
-                            | _ => weight.contents
-                        }
-                    }
-                    weight.contents *. 10.0
-                }
-                // no movement speed attribute
-                | None => 1.0
-            }
-            // no attributes at all
-            | None => 1.0
+    let getEffects = (entity: entity): effects => {
+        speed: switch (entity.effects["1"]) {
+            | Some(effect) => effect.amplifier
+            | None => 0
         },
-        jump: switch (entity.effects["8"]) {
-            | Some(effect) => effect.amplifier -> Belt.Int.toFloat *. 0.1
-            | None => 0.0
+        slowness: switch (entity.effects["2"]) {
+            | Some(effect) => effect.amplifier
+            | None => 0
+        },
+        jump_boost: switch (entity.effects["8"]) {
+            | Some(effect) => effect.amplifier
+            | None => 0
         }
     }
 
+    let getMovement = (controls: controls): float => {
+        let multiplier = (
+            if controls.sprint {
+                1.3
+            } else
+
+            if controls.sneak {
+                0.3
+            } else
+
+            if controls.forward || controls.back || controls.left || controls.right {
+                1.0
+            } else 
+            
+            {
+                0.0
+            }
+        )
+
+        // 45 degrees strafe
+        if Utils.xor(controls.forward, controls.back) && Utils.xor(controls.left, controls.right) {
+            if (controls.sneak) {
+                multiplier *. 0.98 *. Js.Math._SQRT2
+            } else {
+                multiplier
+            }
+        } else {
+            multiplier *. 0.98
+        }
+    }
+
+    let getNextState = (state, controls, effects) => {
+        let em = (1.0 +. 0.2 *. Belt.Int.toFloat(effects.speed)) +. (1.0 -. 0.15 *. Belt.Int.toFloat(effects.slowness))
+        let sm = Utils.offsetVec(state.position, 0.0, -1.0, 0.0) -> getSlip
+        let mm = getMovement(controls)
+
+
+    }
+
+    {
+        getSlip,
+        getEffects,
+        getMovement,
+        getNextState
+    }
 }
