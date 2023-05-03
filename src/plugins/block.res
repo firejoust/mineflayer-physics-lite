@@ -6,7 +6,7 @@ type plugin = {
 }
 
 @warning("-27")
-let inject = (bot: client) => {
+let inject = (bot) => {
     let blocks: array<blockData> = %raw(`bot.registry.blocksArray`)
     let blockShapes = Belt.HashMap.Int.make(~hintSize=0xfff)
     let blockNames = Belt.HashMap.Int.make(~hintSize=0xfff)

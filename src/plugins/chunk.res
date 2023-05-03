@@ -6,7 +6,7 @@ type plugin = {
 
 @warning("-21")
 @warning("-27")
-let inject = (bot: client) => {
+let inject = (bot) => {
     // todo: set to chunk render distance
     let chunkMap = Belt.HashMap.String.make(~hintSize=0xff)
     let chunkMapHeight = Belt.HashMap.String.make(~hintSize=0xff)
@@ -46,7 +46,7 @@ let inject = (bot: client) => {
         Belt.HashMap.String.set(chunkMapHeight, key, column.minY)
     }
 
-    let unloadColumn = (x: int, z: int) => {
+    let unloadColumn = (x, z) => {
         let key = Belt.Int.toString(x) ++ "," ++ Belt.Int.toString(z)
         Belt.HashMap.String.remove(chunkMap, key)
     }
@@ -79,19 +79,19 @@ let inject = (bot: client) => {
         }
     }
 
-    on("chunkColumnLoad", async (position: vec3) => {
+    on("chunkColumnLoad", async (position) => {
         loadColumn(Utils.floorDiv(position.x, 16.0), Utils.floorDiv(position.z, 16.0))
     })
 
-    on("chunkColumnUnload", async (position: vec3) => {
+    on("chunkColumnUnload", async (position) => {
         unloadColumn(Utils.floorDiv(position.x, 16.0), Utils.floorDiv(position.z, 16.0))
     })
 
-    on("blockUpdate", async (a: block, b: block) => {
+    on("blockUpdate", async (a, b) => {
         updateBlock(a, b)
     })
 
-    let getBlock = (position: vec3) => {
+    let getBlock = (position) => {
         let key = Utils.floorDiv(position.x, 16.0) -> Belt.Int.toString
             ++ ","
             ++ Utils.floorDiv(position.z, 16.0) -> Belt.Int.toString

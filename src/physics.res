@@ -22,7 +22,7 @@ let playerHeight = 1.8
     METHODS
 */
 
-let getBoundingBox = (state: entityState): box => {
+let getBoundingBox = (state) => {
     a: {
         x: state.position.x -. 0.3,
         y: state.position.y,
@@ -35,7 +35,7 @@ let getBoundingBox = (state: entityState): box => {
     }
 }
 
-let getEffects = (entity: entity): effects => {
+let getEffects = (entity) => {
     speed: switch (entity.effects["1"]) {
         | Some(effect) => effect.amplifier
         | None => 0
@@ -50,11 +50,11 @@ let getEffects = (entity: entity): effects => {
     }
 }
 
-let getEffectMultiplier = (effects: effects) => {
+let getEffectMultiplier = (effects) => {
     (1.0 +. 0.2 *. Belt.Int.toFloat(effects.speed)) +. (1.0 -. 0.15 *. Belt.Int.toFloat(effects.slowness))
 }
 
-let getMovement = (controls: controls): float => {
+let getMovement = (controls): float => {
     let multiplier = (
         if controls.sneak {
             0.3
@@ -85,7 +85,7 @@ let getMovement = (controls: controls): float => {
     }
 }
 
-let getDirection = (yaw: float, controls: controls): float => {
+let getDirection = (yaw, controls) => {
     let forward = Utils.xor(controls.forward, controls.back)
     let sideward = Utils.xor(controls.right, controls.left)
 
@@ -128,11 +128,11 @@ let getDirection = (yaw: float, controls: controls): float => {
     PLUGIN
 */
 
-let inject = (bot: client) => {
+let inject = (bot) => {
     let chunk = Chunk.inject(bot)
     let block = Block.inject(bot)
     
-    let getSlip = (state: entityState) => if state.onGround {
+    let getSlip = (state) => if state.onGround {
         let state = state.position
         -> Utils.offsetVec(0.0, slipOffset, 0.0)
         -> chunk.getBlock
