@@ -1,3 +1,5 @@
+type vec3 = Types.vec3
+
 let xyzIterator = (radius, callback) => {
     for x in 0 to radius {
         for y in 0 to radius {
@@ -28,11 +30,10 @@ let unwrapStr = (value: option<string>) => switch(value) {
 
 let compareInt = (a: int, b: int) => Pervasives.compare(a, b)
 
-let offsetVec = (position: Types.vec3, x: float, y: float, z: float) => {
-    position.x = position.x +. x
-    position.y = position.y +. y
-    position.z = position.z +. z
-    position
+let offsetVec = (position: vec3, x, y, z): vec3 => {
+    x: position.x +. x,
+    y: position.y +. y,
+    z: position.z +. z
 }
 
 let xor: (bool, bool) => bool = %raw(`(a, b) => a ^ b`)
