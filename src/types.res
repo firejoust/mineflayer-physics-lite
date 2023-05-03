@@ -65,3 +65,14 @@ type effects = {
     slowness: int,
     jump_boost: int
 }
+
+type shapes = array<array<float>>
+
+type blockData = {
+    name: string,
+    stateId: int,
+    shapes: shapes,
+    minStateId: option<int>,
+    maxStateId: option<int>,
+    stateShapes: option<array<shapes>>
+}

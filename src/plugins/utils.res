@@ -1,4 +1,4 @@
-type vec3 = Types.vec3
+open Types
 
 let xyzIterator = (radius, callback) => {
     for x in 0 to radius {

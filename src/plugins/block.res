@@ -1,13 +1,4 @@
-type shapes = array<array<float>>
-
-type blockData = {
-    name: string,
-    stateId: int,
-    shapes: shapes,
-    minStateId: option<int>,
-    maxStateId: option<int>,
-    stateShapes: option<array<shapes>>
-}
+open Types
 
 type plugin = {
     getShape: int => option<shapes>,
@@ -15,7 +6,7 @@ type plugin = {
 }
 
 @warning("-27")
-let inject = (bot: Types.client) => {
+let inject = (bot: client) => {
     let blocks: array<blockData> = %raw(`bot.registry.blocksArray`)
     let blockShapes = Belt.HashMap.Int.make(~hintSize=0xfff)
     let blockNames = Belt.HashMap.Int.make(~hintSize=0xfff)

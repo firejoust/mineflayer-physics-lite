@@ -1,11 +1,4 @@
-type vec3 = Types.vec3
-type box = Types.box
-type entityState = Types.entityState
-type entityEffect = Types.entityEffect
-type entityEffects = Types.entityEffects
-type entity = Types.entity
-type controls = Types.controls
-type effects = Types.effects
+open Types
 
 type plugin = {
     getEffects: entity => effects,
@@ -135,7 +128,7 @@ let getDirection = (yaw: float, controls: controls): float => {
     PLUGIN
 */
 
-let inject = (bot: Types.client) => {
+let inject = (bot: client) => {
     let chunk = Chunk.inject(bot)
     let block = Block.inject(bot)
     

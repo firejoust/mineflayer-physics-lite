@@ -1,1 +1,3 @@
-let plugin = (bot: Types.client) => ()
+open Types
+
+let plugin = (bot: client) => ()

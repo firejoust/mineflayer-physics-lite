@@ -1,4 +1,4 @@
-type vec3 = Types.vec3
+open Types
 
 type plugin = {
     getBlock: vec3 => option<int>
@@ -6,7 +6,7 @@ type plugin = {
 
 @warning("-21")
 @warning("-27")
-let inject = (bot: Types.client) => {
+let inject = (bot: client) => {
     // todo: set to chunk render distance
     let chunkMap = Belt.HashMap.String.make(~hintSize=0xff)
     let chunkMapHeight = Belt.HashMap.String.make(~hintSize=0xff)
@@ -17,16 +17,16 @@ let inject = (bot: Types.client) => {
         }
     `)
 
-    let getColumnJs: (int, int) => Types.column = %raw(`
+    let getColumnJs: (int, int) => column = %raw(`
         (x, z) => bot.world.async.getLoadedColumn(x, z)
     `)
 
-    let getBlockJs: (Types.column, int, int, int) => int = %raw(`
+    let getBlockJs: (column, int, int, int) => int = %raw(`
         (column, x, y, z) => column.getBlockStateId({x, y, z})
     `)
 
     let loadColumn = (x, z) => {
-        let column: Types.column = getColumnJs(x, z)
+        let column: column = getColumnJs(x, z)
         let size = Array.length(column.sections)
         let sections = Array.init(size, _ => Array.make(4096, 0))
 
@@ -51,7 +51,7 @@ let inject = (bot: Types.client) => {
         Belt.HashMap.String.remove(chunkMap, key)
     }
 
-    let updateBlock = (_, block: Types.block) => {
+    let updateBlock = (_, block: block) => {
         let x = Js.Math.floor_int(block.position.x)
         let y = Js.Math.floor_int(block.position.y)
         let z = Js.Math.floor_int(block.position.z)
@@ -79,15 +79,15 @@ let inject = (bot: Types.client) => {
         }
     }
 
-    on("chunkColumnLoad", async (position: Types.vec3) => {
+    on("chunkColumnLoad", async (position: vec3) => {
         loadColumn(Utils.floorDiv(position.x, 16.0), Utils.floorDiv(position.z, 16.0))
     })
 
-    on("chunkColumnUnload", async (position: Types.vec3) => {
+    on("chunkColumnUnload", async (position: vec3) => {
         unloadColumn(Utils.floorDiv(position.x, 16.0), Utils.floorDiv(position.z, 16.0))
     })
 
-    on("blockUpdate", async (a: Types.block, b: Types.block) => {
+    on("blockUpdate", async (a: block, b: block) => {
         updateBlock(a, b)
     })
 
