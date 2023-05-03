@@ -1,62 +1,139 @@
 type vec3 = Types.vec3
-
-type entityState = {
-    yaw: float,
-    position: vec3,
-    velocity: vec3,
-    onGround: bool,
-    isInWater: bool,
-    isInLava: bool,
-    isInWeb: bool,
-    isCollidedHorizontally: bool,
-    isCollidedVertically: bool,
-}
-
-type entityEffect = {
-    amplifier: int,
-    duration: int
-}
-
-type entityEffects = {
-    "1": option<entityEffect>, // speed
-    "2": option<entityEffect>, // slowness
-    "8": option<entityEffect>  // jump
-}
-
-type entity = {
-    effects: entityEffects
-}
-
-type controls = {
-    forward: bool,
-    back: bool,
-    left: bool,
-    right: bool,
-    jump: bool,
-    sneak: bool,
-    sprint: bool,
-}
-
-type effects = {
-    speed: int,
-    slowness: int,
-    jump_boost: int
-}
+type box = Types.box
+type entityState = Types.entityState
+type entityEffect = Types.entityEffect
+type entityEffects = Types.entityEffects
+type entity = Types.entity
+type controls = Types.controls
+type effects = Types.effects
 
 type plugin = {
-    getSlip: entityState => float,
     getEffects: entity => effects,
-    getMovement: controls => float,
     getNextState: (entityState, controls, effects) => float
 }
+
+/*
+    CONSTANTS
+*/
 
 let radian180 = Js.Math._PI
 let radian90  = Js.Math._PI /. 2.0
 let radian45  = Js.Math._PI /. 4.0
 
 let slipOffset = -0.6 // 1.15+ is 0.6, 1.14.4 and lower is 1.0
-let negligibleY = 0.005
+let stepOffset = 0.6
+let negligibleY = 0.003
+let playerHeight = 1.8
 
+/*
+    METHODS
+*/
+
+let getBoundingBox = (state: entityState): box => {
+    a: {
+        x: state.position.x -. 0.3,
+        y: state.position.y,
+        z: state.position.z -. 0.3
+    },
+    b: {
+        x: state.position.x +. 0.3,
+        y: state.position.y +. playerHeight,
+        z: state.position.z +. 0.3
+    }
+}
+
+let getEffects = (entity: entity): effects => {
+    speed: switch (entity.effects["1"]) {
+        | Some(effect) => effect.amplifier
+        | None => 0
+    },
+    slowness: switch (entity.effects["2"]) {
+        | Some(effect) => effect.amplifier
+        | None => 0
+    },
+    jump_boost: switch (entity.effects["8"]) {
+        | Some(effect) => effect.amplifier
+        | None => 0
+    }
+}
+
+let getEffectMultiplier = (effects: effects) => {
+    (1.0 +. 0.2 *. Belt.Int.toFloat(effects.speed)) +. (1.0 -. 0.15 *. Belt.Int.toFloat(effects.slowness))
+}
+
+let getMovement = (controls: controls): float => {
+    let multiplier = (
+        if controls.sneak {
+            0.3
+        } else
+
+        if controls.sprint {
+            1.3
+        } else
+
+        if controls.forward || controls.back || controls.left || controls.right {
+            1.0
+        } else 
+        
+        {
+            0.0
+        }
+    )
+
+    // 45 degrees strafe
+    if Utils.xor(controls.forward, controls.back) && Utils.xor(controls.left, controls.right) {
+        if (controls.sneak) {
+            multiplier *. 0.98 *. Js.Math._SQRT2
+        } else {
+            multiplier
+        }
+    } else {
+        multiplier *. 0.98
+    }
+}
+
+let getDirection = (yaw: float, controls: controls): float => {
+    let forward = Utils.xor(controls.forward, controls.back)
+    let sideward = Utils.xor(controls.right, controls.left)
+
+    switch (forward, sideward) {
+        // multiple strafe keys at once
+        | (true, true) => if controls.forward {
+            if controls.left {
+                yaw +. radian45
+            } else {
+                yaw -. radian45
+            }
+        } else {
+            if controls.left {
+                yaw +. radian180 -. radian45
+            } else {
+                yaw -. radian180 +. radian45
+            }
+        }
+
+        // only forward/backward strafe keys
+        | (true, false) => if controls.forward {
+            yaw
+        } else {
+            yaw +. radian180
+        }
+
+        // only left/right strafe keys
+        | (false, true) => if controls.left {
+            yaw +. radian90
+        } else {
+            yaw -. radian90
+        }
+        
+        // no strafe keys or conflicting strafe keys
+        | (false, false) => yaw
+    }
+}
+
+/*
+    PLUGIN
+*/
 
 let inject = (bot: Types.client) => {
     let chunk = Chunk.inject(bot)
@@ -77,95 +154,6 @@ let inject = (bot: Types.client) => {
         }
     } else {
         1.0
-    }
-
-    let getEffects = (entity: entity): effects => {
-        speed: switch (entity.effects["1"]) {
-            | Some(effect) => effect.amplifier
-            | None => 0
-        },
-        slowness: switch (entity.effects["2"]) {
-            | Some(effect) => effect.amplifier
-            | None => 0
-        },
-        jump_boost: switch (entity.effects["8"]) {
-            | Some(effect) => effect.amplifier
-            | None => 0
-        }
-    }
-
-    let getEffectMultiplier = (effects: effects) => {
-        (1.0 +. 0.2 *. Belt.Int.toFloat(effects.speed)) +. (1.0 -. 0.15 *. Belt.Int.toFloat(effects.slowness))
-    }
-
-    let getMovement = (controls: controls): float => {
-        let multiplier = (
-            if controls.sneak {
-                0.3
-            } else
-
-            if controls.sprint {
-                1.3
-            } else
-
-            if controls.forward || controls.back || controls.left || controls.right {
-                1.0
-            } else 
-            
-            {
-                0.0
-            }
-        )
-
-        // 45 degrees strafe
-        if Utils.xor(controls.forward, controls.back) && Utils.xor(controls.left, controls.right) {
-            if (controls.sneak) {
-                multiplier *. 0.98 *. Js.Math._SQRT2
-            } else {
-                multiplier
-            }
-        } else {
-            multiplier *. 0.98
-        }
-    }
-
-    let getDirection = (yaw: float, controls: controls): float => {
-        let forward = Utils.xor(controls.forward, controls.back)
-        let sideward = Utils.xor(controls.right, controls.left)
-
-        switch (forward, sideward) {
-            // multiple strafe keys at once
-            | (true, true) => if controls.forward {
-                if controls.left {
-                    yaw +. radian45
-                } else {
-                    yaw -. radian45
-                }
-            } else {
-                if controls.left {
-                    yaw +. radian180 -. radian45
-                } else {
-                    yaw -. radian180 +. radian45
-                }
-            }
-
-            // only forward/backward strafe keys
-            | (true, false) => if controls.forward {
-                yaw
-            } else {
-                yaw +. radian180
-            }
-
-            // only left/right strafe keys
-            | (false, true) => if controls.left {
-                yaw +. radian90
-            } else {
-                yaw -. radian90
-            }
-            
-            // no strafe keys or conflicting strafe keys
-            | (false, false) => yaw
-        }
     }
 
     // 1. acceleration + jump boost is added to velocity in existing state, making new velocity.
@@ -213,9 +201,7 @@ let inject = (bot: Types.client) => {
     }
 
     {
-        getSlip,
         getEffects,
-        getMovement,
         getNextState
     }
 }
